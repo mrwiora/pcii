@@ -1,0 +1,47 @@
+{
+  "name": "Yocto STM32MP – myd-yf13x (Scarthgap)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "args": {
+      "USER_UID": "1000",
+      "USER_GID": "1000",
+      "USERNAME": "yocto"
+    }
+  },
+
+  // Mount the workspace root into /workdir inside the container
+  "workspaceFolder": "/workdir",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workdir,type=bind,consistency=delegated",
+
+  // Persist the Yocto download cache and shared-state cache across container
+  // rebuilds so you never re-download/re-compile the same artefact twice.
+  "mounts": [
+    "source=yocto-downloads,target=/workdir/yocto-downloads,type=volume",
+    "source=yocto-sstate,target=/workdir/yocto-sstate-cache,type=volume"
+  ],
+
+  // Run as the non-root "yocto" user (Yocto refuses to build as root in
+  // Scarthgap).
+  "remoteUser": "yocto",
+
+  // After the container is created for the first time, clone the required
+  // Yocto layers and prepare the build directory.
+  "postCreateCommand": "bash /workdir/.devcontainer/scripts/setup-layers.sh",
+
+  // Useful VS Code extensions inside the devcontainer
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-python.python",
+        "trond-snekvik.gnu-mapfiles",
+        "xaver.twig"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+}

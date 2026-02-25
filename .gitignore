@@ -1,0 +1,24 @@
+# Yocto build artefacts
+build/
+yocto-downloads/
+yocto-sstate-cache/
+
+# Cloned Yocto layers (fetched by setup-layers.sh inside the devcontainer)
+poky/
+meta-openembedded/
+
+# BitBake workspace lock files
+bitbake.lock
+
+# Editor temporaries
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+*.log
