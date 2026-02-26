@@ -126,7 +126,7 @@ conf_set STM32MP_ROOTFS_IMAGE "core-image-minimal"
 echo 'BAD_RECOMMENDATIONS:append = " linux-examples-stm32mp1-userfs"' >> "${LOCAL_CONF}"
 
 # ── nftables in all images ───────────────────────────────────────────────────
-echo 'IMAGE_INSTALL:append = " nftables"' >> "${LOCAL_CONF}"
+echo 'IMAGE_INSTALL:append = " nftables kernel-modules"' >> "${LOCAL_CONF}"
 echo ""
 echo -e "${BOLD}${GREEN}=====================================================================${RESET}"
 echo -e "${BOLD}${GREEN}  Yocto Scarthgap build environment ready for myd-yf13x${RESET}"

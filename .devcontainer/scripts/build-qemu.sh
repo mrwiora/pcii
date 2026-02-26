@@ -111,7 +111,7 @@ echo 'BB_HASHSERVE = ""' >> "${LOCAL_CONF}"
 echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> "${LOCAL_CONF}"
 
 # nftables in all images
-echo 'IMAGE_INSTALL:append = " nftables"' >> "${LOCAL_CONF}"
+echo 'IMAGE_INSTALL:append = " nftables kernel-modules"' >> "${LOCAL_CONF}"
 
 log "local.conf written with MACHINE=qemuarm"
 
