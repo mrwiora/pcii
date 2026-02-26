@@ -1,5 +1,6 @@
 # Yocto build artefacts
 build/
+build-qemu/
 yocto-downloads/
 yocto-sstate-cache/
 
