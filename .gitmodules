@@ -1,0 +1,3 @@
+[submodule "meta-myir-stm32mp"]
+	path = meta-myir-stm32mp
+	url = git@github.com:mrwiora/meta-myir-stm32mp.git
