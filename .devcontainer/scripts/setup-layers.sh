@@ -125,8 +125,9 @@ conf_set STM32MP_ROOTFS_IMAGE "core-image-minimal"
 # ── has no shell installed.  Mark it as a bad recommendation so DNF skips it. ──
 echo 'BAD_RECOMMENDATIONS:append = " linux-examples-stm32mp1-userfs"' >> "${LOCAL_CONF}"
 
-# ── nftables in all images ───────────────────────────────────────────────────
-echo 'IMAGE_INSTALL:append = " nftables kernel-modules"' >> "${LOCAL_CONF}"
+# ── Packages installed in all images (single source of truth) ───────────────
+# shellcheck source=image-packages.sh
+source "$(dirname "${BASH_SOURCE[0]}")/image-packages.sh"
 echo ""
 echo -e "${BOLD}${GREEN}=====================================================================${RESET}"
 echo -e "${BOLD}${GREEN}  Yocto Scarthgap build environment ready for myd-yf13x${RESET}"

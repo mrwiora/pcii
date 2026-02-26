@@ -110,8 +110,9 @@ echo 'GLIBC_EXTRA_OECONF:append = " --with-pkgversion=Poky"' >> "${LOCAL_CONF}"
 echo 'BB_HASHSERVE = ""' >> "${LOCAL_CONF}"
 echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> "${LOCAL_CONF}"
 
-# nftables in all images
-echo 'IMAGE_INSTALL:append = " nftables kernel-modules"' >> "${LOCAL_CONF}"
+# ── Packages installed in all images (single source of truth) ───────────────
+# shellcheck source=image-packages.sh
+source "$(dirname "${BASH_SOURCE[0]}")/image-packages.sh"
 
 log "local.conf written with MACHINE=qemuarm"
 
