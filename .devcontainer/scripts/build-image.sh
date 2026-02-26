@@ -80,9 +80,14 @@ log "bitbake st-image-vendorfs"
 bitbake st-image-vendorfs
 
 # ── Step 7: userfs partition image ───────────────────────────────────────────
-section "Step 7/7 · st-image-userfs (MYIR user-space tools)"
+section "Step 7/8 · st-image-userfs (MYIR user-space tools)"
 log "bitbake st-image-userfs"
 bitbake st-image-userfs
+
+# ── Step 8: full SD card WIC image ─────────────────────────────────────────
+section "Step 8/8 · myir-image-sd (full SD card WIC image)"
+log "bitbake myir-image-sd"
+bitbake myir-image-sd
 
 # ── Build summary ─────────────────────────────────────────────────────────────
 END_TIME=$(date +%s)

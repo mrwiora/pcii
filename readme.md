@@ -218,7 +218,8 @@ bitbake st-image-userfs
 | 4 | `virtual/kernel` | `uImage`, `myb-stm32mp135x-512m.dtb` | Linux 6.6.78 |
 | 5 | `st-image-bootfs` | `st-image-bootfs-poky-myd-yf13x.bootfs.ext4` (64 MB) | Kernel + DTB + extlinux.conf |
 | 6 | `st-image-vendorfs` | `st-image-vendorfs-poky-myd-yf13x.vendorfs.ext4` (16 MB) | BCM43xx Wi-Fi/BT firmware |
-| 7 | `st-image-userfs` | `myir-image-full-userfs-poky-myd-yf13x.userfs.ext4` (128 MB) | MYIR user-space tools |
+| 7 | `st-image-userfs` | `st-image-userfs-poky-myd-yf13x.userfs.ext4` (128 MB) | MYIR user-space tools + nftables |
+| 8 | `myir-image-sd` | `myir-image-sd-poky-myd-yf13x.wic` (~1 GB) | Complete SD card image (all partitions assembled) |
 
 All outputs land in:
 
@@ -264,14 +265,66 @@ Partition table: **GPT** (required — TF-A BL2 discovery requires GPT).
 
 ## Flashing
 
-### SD Card (for development)
+### SD Card
 
-Use `dd` or Balena Etcher with the WIC image if a full SD image was built, or use the STM32CubeProgrammer CLI with the TSV flashlayout file for eMMC/SD flashing via USB DFU.
+`make build-sdcard` (or `build-image.sh` step 8) produces a ready-to-flash WIC image at:
+
+```
+build/tmp/deploy/images/myd-yf13x/myir-image-sd-myd-yf13x.rootfs.wic      (~300 MB)
+build/tmp/deploy/images/myd-yf13x/myir-image-sd-myd-yf13x.rootfs.wic.gz   (~22 MB, compressed)
+```
+
+#### 1. Identify your SD card device
+
+Insert the SD card and run:
 
 ```bash
-# via dd (if wic image present)
-sudo dd if=build/tmp/deploy/images/myd-yf13x/myir-image-full-poky-myd-yf13x.wic \
+lsblk -o NAME,SIZE,MODEL,TRAN | grep -E 'sd|mmcblk'
+# or
+dmesg | tail -20
+```
+
+> **Warning:** Double-check the device path. Writing to the wrong device will destroy data.
+> The device must be **unmounted** before flashing (`sudo umount /dev/sdX?`).
+
+#### 2. Copy the image out of the container
+
+```bash
+docker cp nostalgic_jones:/workdir/build/tmp/deploy/images/myd-yf13x/myir-image-sd-myd-yf13x.rootfs.wic /tmp/
+```
+
+#### 3. Write to SD card
+
+```bash
+# Replace /dev/sdX with your actual device (e.g. /dev/sdb or /dev/mmcblk0)
+sudo dd if=/tmp/myir-image-sd-myd-yf13x.rootfs.wic \
         of=/dev/sdX bs=4M conv=fdatasync status=progress
+```
+
+Or directly from the compressed image (no extra disk space needed):
+
+```bash
+docker cp nostalgic_jones:/workdir/build/tmp/deploy/images/myd-yf13x/myir-image-sd-myd-yf13x.rootfs.wic.gz /tmp/
+zcat /tmp/myir-image-sd-myd-yf13x.rootfs.wic.gz | sudo dd of=/dev/sdX bs=4M conv=fdatasync status=progress
+```
+
+#### 4. Verify and eject
+
+```bash
+sudo sync
+sudo eject /dev/sdX
+```
+
+#### 5. Boot
+
+Insert the SD card into the MYC-YF135 board and power on. The board boots via TF-A → OP-TEE → U-Boot → Linux.
+
+To rebuild the SD card WIC after changing only rootfs/userfs (partition images already built):
+
+```bash
+make build-sdcard
+# or:
+docker exec -u yocto nostalgic_jones bash /workdir/.devcontainer/scripts/build-sdcard.sh
 ```
 
 ### eMMC via USB DFU (STM32CubeProgrammer)

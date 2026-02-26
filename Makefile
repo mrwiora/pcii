@@ -20,7 +20,7 @@ DC_EXEC          := devcontainer exec --workspace-folder $(WORKSPACE_FOLDER) bas
 
 SCRIPTS := /workdir/.devcontainer/scripts
 
-.PHONY: all build up setup build-stm32 build-qemu run-qemu shell
+.PHONY: all build up setup build-stm32 build-sdcard build-qemu run-qemu shell
 
 # Default: build everything
 all: build
@@ -48,6 +48,10 @@ shell:
 build-stm32:
 	$(DC_EXEC) $(SCRIPTS)/build-image.sh
 
+## SD card WIC image only (requires build-stm32 to have run first)
+build-sdcard:
+	$(DC_EXEC) $(SCRIPTS)/build-sdcard.sh
+
 ## qemuarm core-image-minimal — bootable in QEMU without real hardware
 build-qemu:
 	$(DC_EXEC) $(SCRIPTS)/build-qemu.sh
@@ -66,13 +70,15 @@ help:
 	@echo "  make up            Start devcontainer + run setup-layers.sh"
 	@echo "  make setup         Re-run setup-layers.sh (re-init build dirs)"
 	@echo "  make build         Build both STM32MP and QEMU images"
-	@echo "  make build-stm32   Build full STM32MP135 image set"
+	@echo "  make build-stm32   Build full STM32MP135 image set (steps 1-8)"
+	@echo "  make build-sdcard  Build SD card WIC only (requires build-stm32 first)"
 	@echo "  make build-qemu    Build qemuarm core-image-minimal"
 	@echo "  make run-qemu      Launch QEMU (nographic, Ctrl-A x to exit)"
 	@echo "  make shell         Open shell in the running container"
 	@echo ""
 	@echo "  Output (STM32MP):"
 	@echo "    build/tmp/deploy/images/myd-yf13x/"
+	@echo "    SD card: myir-image-sd-poky-myd-yf13x.wic (.wic.gz)"
 	@echo ""
 	@echo "  Output (QEMU):"
 	@echo "    build-qemu/tmp/deploy/images/qemuarm/"
