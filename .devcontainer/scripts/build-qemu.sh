@@ -65,6 +65,10 @@ add_if_missing() {
 add_if_missing "${WORKDIR}/meta-openembedded/meta-oe"
 add_if_missing "${WORKDIR}/meta-openembedded/meta-python"
 add_if_missing "${WORKDIR}/meta-openembedded/meta-networking"
+# meta-myir-stm32mp holds all project-local recipes (nftables-config, kernel
+# config fragments, etc.) — must be present in every build so IMAGE_INSTALL
+# additions in image-packages.sh resolve correctly regardless of MACHINE.
+add_if_missing "${WORKDIR}/meta-myir-stm32mp"
 
 # ── 3. Write local.conf for qemuarm ───────────────────────────────────────────
 section "Step 3/3 · Writing build-qemu/conf/local.conf"
