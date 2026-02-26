@@ -37,7 +37,7 @@ fail()    { echo -e "${RED}[ERROR]${RESET} $*" >&2; exit 1; }
 [[ "$(id -u)" -eq 0 ]] && fail "Do not run as root. BitBake will refuse."
 
 # ── 1. Initialise a fresh QEMU build directory ────────────────────────────────
-section "Step 1/2 · Initialising QEMU build environment in ${BUILD_DIR}"
+section "Step 1/3 · Initialising QEMU build environment in ${BUILD_DIR}"
 cd "${POKY_DIR}"
 set +u
 # shellcheck disable=SC1091
@@ -47,8 +47,27 @@ set -u
 
 NCPUS="$(nproc)"
 
-# ── 2. Write local.conf for qemuarm ───────────────────────────────────────────
-section "Step 2/2 · Writing build-qemu/conf/local.conf"
+# ── 2. Register extra layers needed for nftables ──────────────────────────────
+section "Step 2/3 · Registering extra layers"
+
+add_if_missing() {
+    local path="$1"
+    local name; name="$(basename "${path}")"
+    if bitbake-layers show-layers 2>/dev/null | awk '{print $1}' | grep -qx "${name}"; then
+        log "  already registered: ${name}"
+    else
+        log "  adding layer: ${name}"
+        bitbake-layers add-layer "${path}"
+    fi
+}
+
+# meta-oe and meta-python are dependencies of meta-networking
+add_if_missing "${WORKDIR}/meta-openembedded/meta-oe"
+add_if_missing "${WORKDIR}/meta-openembedded/meta-python"
+add_if_missing "${WORKDIR}/meta-openembedded/meta-networking"
+
+# ── 3. Write local.conf for qemuarm ───────────────────────────────────────────
+section "Step 3/3 · Writing build-qemu/conf/local.conf"
 
 LOCAL_CONF="${BUILD_DIR}/conf/local.conf"
 
@@ -62,6 +81,10 @@ conf_set() {
 conf_set MACHINE          "qemuarm"
 conf_set DISTRO           "poky"
 conf_set CONF_VERSION     "2"
+
+# Explicitly pin TMPDIR so QEMU and STM32 build trees never share temp files
+# (default is already ${BUILDDIR}/tmp but we make it explicit here).
+conf_set TMPDIR           "${BUILD_DIR}/tmp"
 
 # Shared caches with the STM32MP build — saves re-downloading common packages.
 conf_set DL_DIR           "/workdir/yocto-downloads"
@@ -86,6 +109,9 @@ echo 'GLIBC_EXTRA_OECONF:append = " --with-pkgversion=Poky"' >> "${LOCAL_CONF}"
 # equivalence deduplication across different task hashes.
 echo 'BB_HASHSERVE = ""' >> "${LOCAL_CONF}"
 echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> "${LOCAL_CONF}"
+
+# nftables in all images
+echo 'IMAGE_INSTALL:append = " nftables"' >> "${LOCAL_CONF}"
 
 log "local.conf written with MACHINE=qemuarm"
 

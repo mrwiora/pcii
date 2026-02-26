@@ -46,21 +46,79 @@ Setup script clones the first two from GitHub at `--depth=1`.
 
 ## Devcontainer Quick Start
 
+### 1 — Start the container (once per new container)
+
 ```bash
-# Build the Docker image (once)
-devcontainer build --workspace-folder .
-
-# Start container + run setup-layers.sh (once per new container)
 devcontainer up --workspace-folder .
-
-# Open a shell in the running container
-devcontainer exec --workspace-folder . bash
-
-# Run the full build (inside the container)
-bash /workdir/.devcontainer/scripts/build-image.sh
 ```
 
-Or open the folder in VS Code — the devcontainer extension handles `build` and `up` automatically, and `setup-layers.sh` runs as `postCreateCommand`.
+This builds the Docker image if needed, starts the container, and automatically runs `setup-layers.sh` (`postCreateCommand`), which clones poky + meta-openembedded and initialises both `build/` and `build-qemu/` configuration.
+
+Or open the folder in VS Code — the devcontainer extension handles `build` and `up` automatically.
+
+---
+
+### 2 — Trigger the builds
+
+`make` is not available on the host PATH by default. Use `docker exec` to run the build scripts inside the container.
+
+#### Option A — detached (recommended for long builds)
+
+Logs are written to files in the workspace root and can be followed from any terminal.
+
+```bash
+# STM32MP full image set
+docker exec -d -u yocto nostalgic_jones \
+    bash -c 'bash /workdir/.devcontainer/scripts/build-image.sh \
+             > /workdir/yocto-build.log 2>&1'
+tail -f yocto-build.log
+
+# QEMU core-image-minimal (run in parallel or after STM32 finishes)
+docker exec -d -u yocto nostalgic_jones \
+    bash -c 'bash /workdir/.devcontainer/scripts/build-qemu.sh \
+             > /workdir/yocto-qemu-build.log 2>&1'
+tail -f yocto-qemu-build.log
+```
+
+> Replace `nostalgic_jones` with the actual container name if it differs: `docker ps --format '{{.Names}}'`
+
+#### Option B — interactive (output on screen)
+
+```bash
+docker exec -it -u yocto nostalgic_jones bash
+bash /workdir/.devcontainer/scripts/build-image.sh
+bash /workdir/.devcontainer/scripts/build-qemu.sh
+```
+
+#### Option C — Makefile (requires `make` on host, e.g. `sudo pacman -S make`)
+
+```bash
+make up            # start container + setup
+make build-stm32   # STM32MP full image set
+make build-qemu    # QEMU core-image-minimal
+make run-qemu      # launch QEMU (Ctrl-A x to exit)
+make shell         # interactive shell in container
+```
+
+---
+
+### 3 — Build outputs
+
+| Build | Output directory |
+|-------|-----------------|
+| STM32MP | `build/tmp/deploy/images/myd-yf13x/` |
+| QEMU | `build-qemu/tmp/deploy/images/qemuarm/` |
+
+---
+
+### 4 — Launch the QEMU image
+
+```bash
+docker exec -it -u yocto nostalgic_jones \
+    bash /workdir/.devcontainer/scripts/run-qemu.sh
+# Login : root  (no password)
+# Exit  : Ctrl-A x
+```
 
 ---
 
@@ -233,6 +291,61 @@ Flashlayout files are at:
 ```
 build/tmp/deploy/images/myd-yf13x/flashlayout*/*.tsv
 ```
+
+---
+
+## Build Isolation — STM32MP vs QEMU
+
+Two completely independent build trees coexist under `/workdir`:
+
+```
+/workdir/
+├── build/              STM32MP myd-yf13x build tree
+│   ├── conf/           Machine-specific local.conf, bblayers.conf
+│   └── tmp/            TMPDIR — all intermediate work for STM32MP
+│       ├── work/       Per-recipe source + compile trees   (~60 GB)
+│       └── deploy/     Final images, dtbs, firmware blobs  (~620 MB)
+│
+├── build-qemu/         QEMU qemuarm build tree
+│   ├── conf/           QEMU-specific local.conf, bblayers.conf
+│   └── tmp/            TMPDIR — all intermediate work for QEMU
+│       ├── work/       Per-recipe source + compile trees   (~40 GB)
+│       └── deploy/     core-image-minimal, zImage          (~30 MB)
+│
+├── yocto-downloads/    ← SHARED (Docker volume) — source tarballs/repos
+└── yocto-sstate-cache/ ← SHARED (Docker volume) — prebuilt task artefacts
+```
+
+### What is shared and why it is safe
+
+| Path | Shared | Rationale |
+|------|--------|-----------|
+| `yocto-downloads/` | Yes | Source archives are content-addressed and architecture-neutral |
+| `yocto-sstate-cache/` | Yes | Every sstate entry is keyed by `MACHINE` + `tune arch` + `task hash` — STM32 entries (`cortexa7…`) and QEMU entries (`cortexa15…`) never collide |
+| `tmp/work/` | **No** — each in its own `build*/tmp/` | Compiled objects, staging sysroots — fully architecture-specific |
+| `conf/local.conf` | **No** — separate file per build dir | Different MACHINE, different workaround flags |
+
+**The two builds do not interfere and do not need to be cleaned between runs.**  Each `bitbake` invocation reads only its own `BUILDDIR/conf/` and writes only to its own `BUILDDIR/tmp/`.
+
+### When cleaning IS needed
+
+| Situation | Action |
+|-----------|--------|
+| `local.conf` changed (added `IMAGE_INSTALL`, changed `MACHINE_FEATURES`, etc.) | `bitbake -c cleansstate <affected-recipe>` in the relevant `build*/` dir |
+| Recipe `.bb` file changed | `bitbake -c cleansstate <recipe> && bitbake <recipe>` |
+| Full rebuild after a Yocto layer update | `bitbake -c cleanall <recipe>` (removes from sstate too) |
+| Corrupted sstate entries (rare) | `bitbake -c cleansstate <recipe>` |
+| Nuclear — start from scratch | `rm -rf build*/tmp` (preserves downloads and sstate volumes) |
+
+> **Disk note**: `tmp/work/` is the largest consumer (~60 GB for STM32, ~40 GB for QEMU). It holds intermediate compile trees and can be deleted any time after a successful build — deployed images in `tmp/deploy/` are fully self-contained and unaffected.
+>
+> ```bash
+> # Reclaim work dirs without losing deployed images or sstate:
+> rm -rf build/tmp/work
+> rm -rf build-qemu/tmp/work
+> ```
+>
+> When the next build runs, only recipes whose sstate entry is missing will recompile.
 
 ---
 

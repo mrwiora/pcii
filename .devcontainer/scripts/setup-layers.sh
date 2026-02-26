@@ -80,6 +80,7 @@ add_if_missing() {
 
 add_if_missing "${WORKDIR}/meta-openembedded/meta-oe"
 add_if_missing "${WORKDIR}/meta-openembedded/meta-python"
+add_if_missing "${WORKDIR}/meta-openembedded/meta-networking"
 add_if_missing "${WORKDIR}/meta-myir-stm32mp"
 
 # ── 4. Write local.conf ───────────────────────────────────────────────────────
@@ -100,6 +101,10 @@ conf_set MACHINE              "myd-yf13x"
 conf_set DISTRO               "poky"
 conf_set CONF_VERSION         "2"
 
+# ── Explicitly pin TMPDIR so STM32 and QEMU build trees never share temp files
+# ── (default is already ${BUILDDIR}/tmp but we make it explicit here) ─────────
+conf_set TMPDIR               "${BUILD_DIR}/tmp"
+
 # ── Accept ST/MYIR EULA ───────────────────────────────────────────────────────
 conf_set "ACCEPT_EULA_myd-yf13x"  "1"
 
@@ -119,6 +124,9 @@ conf_set STM32MP_ROOTFS_IMAGE "core-image-minimal"
 # ── Fix: linux-examples-stm32mp1-userfs scripts need /bin/sh but st-image-userfs
 # ── has no shell installed.  Mark it as a bad recommendation so DNF skips it. ──
 echo 'BAD_RECOMMENDATIONS:append = " linux-examples-stm32mp1-userfs"' >> "${LOCAL_CONF}"
+
+# ── nftables in all images ───────────────────────────────────────────────────
+echo 'IMAGE_INSTALL:append = " nftables"' >> "${LOCAL_CONF}"
 echo ""
 echo -e "${BOLD}${GREEN}=====================================================================${RESET}"
 echo -e "${BOLD}${GREEN}  Yocto Scarthgap build environment ready for myd-yf13x${RESET}"
