@@ -427,6 +427,73 @@ bitbake -c cleanall world   # nuclear option — clears sstate AND downloads
 
 ---
 
+## Adding Packages — Optional Features
+
+### Single source of truth: `image-packages.sh`
+
+All packages added to images are declared in one file:
+
+```
+.devcontainer/scripts/image-packages.sh
+```
+
+Both the STM32MP build (`setup-layers.sh`) and the QEMU build (`build-qemu.sh`) source this file when they write `local.conf`.  **To add a package to every build, edit only this file** — it will be applied to all targets automatically.
+
+```bash
+IMAGE_PACKAGES=(
+    nftables          # nft binary
+    nftables-config   # /etc/nftables.conf + /etc/init.d/nftables
+    kernel-modules    # all kernel modules
+    your-new-package  # ← add here
+)
+```
+
+### Optional feature flags
+
+Optional software groups are gated by environment variables that default to `false`.  They are forwarded into the container by the Makefile so no manual `docker exec` is needed.
+
+#### `MYIR_ENABLE_BT_WIFI` — Bluetooth / WiFi stack
+
+| | |
+|---|---|
+| **Default** | `false` — not built, not included |
+| **Adds** | `bluez5`, `bluez5-noinst-tools`, `wpa-supplicant`, `wireless-tools`, `linux-firmware-addons-bcm43xx` (Murata CYW43430/43439 firmware), `bluetooth-suspend` |
+| **Requires** | Murata CYW43430/43439 WiFi module and brcmfmac Bluetooth hardware on the board |
+
+**Usage:**
+
+```bash
+# One-off build with BT/WiFi included:
+make build-stm32 MYIR_ENABLE_BT_WIFI=true
+make build-qemu  MYIR_ENABLE_BT_WIFI=true
+
+# Or persist for the shell session:
+export MYIR_ENABLE_BT_WIFI=true
+make build-stm32
+make build-qemu
+```
+
+#### Adding a new optional feature flag
+
+1. Add the flag check to `image-packages.sh`:
+
+```bash
+if [[ "${MYIR_ENABLE_MY_FEATURE:-false}" == "true" ]]; then
+    IMAGE_PACKAGES+=(my-package another-package)
+fi
+```
+
+2. Declare the default in `Makefile`:
+
+```makefile
+MYIR_ENABLE_MY_FEATURE ?= false
+MYIR_BUILD_VARS := ... MYIR_ENABLE_MY_FEATURE=$(MYIR_ENABLE_MY_FEATURE)
+```
+
+No changes to any other script are needed.
+
+---
+
 ## DeviceTree Variants
 
 Two hardware variants are supported, selected by DTB filename:

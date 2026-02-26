@@ -18,6 +18,20 @@
 WORKSPACE_FOLDER := .
 DC_EXEC          := devcontainer exec --workspace-folder $(WORKSPACE_FOLDER) bash
 
+# ── Feature flags (override on the command line or via export) ───────────────
+# MYIR_ENABLE_BT_WIFI — include Bluetooth/WiFi stack in the image (default: false)
+#   Usage:  make build-stm32 MYIR_ENABLE_BT_WIFI=true
+#      or:  export MYIR_ENABLE_BT_WIFI=true && make build-stm32
+MYIR_ENABLE_BT_WIFI ?= false
+
+# Build-variable string forwarded into the container for every build target.
+MYIR_BUILD_VARS := MYIR_ENABLE_BT_WIFI=$(MYIR_ENABLE_BT_WIFI)
+
+# Helper: run a script inside the container with MYIR_* variables exported.
+#   $(call dc_build,/workdir/.../script.sh)
+dc_build = devcontainer exec --workspace-folder $(WORKSPACE_FOLDER) bash -c \
+           "export $(MYIR_BUILD_VARS); bash $(1)"
+
 SCRIPTS := /workdir/.devcontainer/scripts
 
 .PHONY: all build up setup build-stm32 build-sdcard build-qemu run-qemu shell
@@ -36,7 +50,7 @@ up:
 
 ## Re-run setup-layers.sh inside an already-running container
 setup:
-	$(DC_EXEC) $(SCRIPTS)/setup-layers.sh
+	$(call dc_build,$(SCRIPTS)/setup-layers.sh)
 
 ## Open an interactive shell in the container
 shell:
@@ -46,15 +60,15 @@ shell:
 
 ## Full STM32MP135 image set (TF-A → OP-TEE → FIP → kernel → bootfs/vendorfs/userfs)
 build-stm32:
-	$(DC_EXEC) $(SCRIPTS)/build-image.sh
+	$(call dc_build,$(SCRIPTS)/build-image.sh)
 
 ## SD card WIC image only (requires build-stm32 to have run first)
 build-sdcard:
-	$(DC_EXEC) $(SCRIPTS)/build-sdcard.sh
+	$(call dc_build,$(SCRIPTS)/build-sdcard.sh)
 
 ## qemuarm core-image-minimal — bootable in QEMU without real hardware
 build-qemu:
-	$(DC_EXEC) $(SCRIPTS)/build-qemu.sh
+	$(call dc_build,$(SCRIPTS)/build-qemu.sh)
 
 # ── Run QEMU ─────────────────────────────────────────────────────────────────
 
@@ -75,6 +89,10 @@ help:
 	@echo "  make build-qemu    Build qemuarm core-image-minimal"
 	@echo "  make run-qemu      Launch QEMU (nographic, Ctrl-A x to exit)"
 	@echo "  make shell         Open shell in the running container"
+	@echo ""
+	@echo "  Feature flags (append to any build target):"
+	@echo "    MYIR_ENABLE_BT_WIFI=true   Include Bluetooth/WiFi stack (default: false)"
+	@echo "    Example: make build-stm32 MYIR_ENABLE_BT_WIFI=true"
 	@echo ""
 	@echo "  Output (STM32MP):"
 	@echo "    build/tmp/deploy/images/myd-yf13x/"
