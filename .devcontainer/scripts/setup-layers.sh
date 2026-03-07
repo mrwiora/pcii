@@ -126,8 +126,8 @@ conf_set STM32MP_ROOTFS_IMAGE "core-image-minimal"
 echo 'BAD_RECOMMENDATIONS:append = " linux-examples-stm32mp1-userfs"' >> "${LOCAL_CONF}"
 
 # ── Packages installed in all images (single source of truth) ───────────────
-# shellcheck source=image-packages.sh
-source "$(dirname "${BASH_SOURCE[0]}")/image-packages.sh"
+# shellcheck source=image-policy.sh
+source "$(dirname "${BASH_SOURCE[0]}")/image-policy.sh"
 echo ""
 echo -e "${BOLD}${GREEN}=====================================================================${RESET}"
 echo -e "${BOLD}${GREEN}  Yocto Scarthgap build environment ready for myd-yf13x${RESET}"

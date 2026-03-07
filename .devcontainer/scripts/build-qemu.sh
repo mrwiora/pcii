@@ -67,7 +67,7 @@ add_if_missing "${WORKDIR}/meta-openembedded/meta-python"
 add_if_missing "${WORKDIR}/meta-openembedded/meta-networking"
 # meta-myir-stm32mp holds all project-local recipes (nftables-config, kernel
 # config fragments, etc.) — must be present in every build so IMAGE_INSTALL
-# additions in image-packages.sh resolve correctly regardless of MACHINE.
+# additions in image-policy.sh resolve correctly regardless of MACHINE.
 add_if_missing "${WORKDIR}/meta-myir-stm32mp"
 
 # ── 3. Write local.conf for qemuarm ───────────────────────────────────────────
@@ -115,8 +115,8 @@ echo 'BB_HASHSERVE = ""' >> "${LOCAL_CONF}"
 echo 'BB_SIGNATURE_HANDLER = "OEBasicHash"' >> "${LOCAL_CONF}"
 
 # ── Packages installed in all images (single source of truth) ───────────────
-# shellcheck source=image-packages.sh
-source "$(dirname "${BASH_SOURCE[0]}")/image-packages.sh"
+# shellcheck source=image-policy.sh
+source "$(dirname "${BASH_SOURCE[0]}")/image-policy.sh"
 
 log "local.conf written with MACHINE=qemuarm"
 

@@ -429,15 +429,17 @@ bitbake -c cleanall world   # nuclear option — clears sstate AND downloads
 
 ## Adding Packages — Optional Features
 
-### Single source of truth: `image-packages.sh`
+### Single source of truth: `image-policy.sh`
 
-All packages added to images are declared in one file:
+All cross-cutting image policy — features, kernel flags, and packages — is declared in one file:
 
 ```
-.devcontainer/scripts/image-packages.sh
+.devcontainer/scripts/image-policy.sh
 ```
 
-Both the STM32MP build (`setup-layers.sh`) and the QEMU build (`build-qemu.sh`) source this file when they write `local.conf`.  **To add a package to every build, edit only this file** — it will be applied to all targets automatically.
+Both the STM32MP build (`setup-layers.sh`) and the QEMU build (`build-qemu.sh`) source this file when they write `local.conf`.  **If a setting must affect the whole product, it belongs here** — it will be applied to all build targets automatically, with no risk of one target diverging from another.
+
+> The rule: never write `IMAGE_FEATURES`, `APPEND`, or `IMAGE_INSTALL` directly inside a build script.
 
 ```bash
 IMAGE_PACKAGES=(
@@ -475,7 +477,7 @@ make build-qemu
 
 #### Adding a new optional feature flag
 
-1. Add the flag check to `image-packages.sh`:
+1. Add the flag check to `image-policy.sh`:
 
 ```bash
 if [[ "${MYIR_ENABLE_MY_FEATURE:-false}" == "true" ]]; then

@@ -62,8 +62,8 @@ shell:
 build-stm32:
 	$(call dc_build,$(SCRIPTS)/build-image.sh)
 
-## SD card WIC image only (requires build-stm32 to have run first)
-build-sdcard:
+## SD card WIC image — builds partition images first if needed, then assembles WIC
+build-sdcard: build-stm32
 	$(call dc_build,$(SCRIPTS)/build-sdcard.sh)
 
 ## qemuarm core-image-minimal — bootable in QEMU without real hardware

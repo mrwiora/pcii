@@ -42,7 +42,7 @@ TFA="${DEPLOY_DIR}/arm-trusted-firmware/tf-a-myb-stm32mp135x-512m-optee-sdcard.s
 FIP="${DEPLOY_DIR}/fip/fip-myb-stm32mp135x-512m-optee-sdcard.bin"
 
 for f in "${BOOTFS}" "${VENDORFS}" "${USERFS}" "${TFA}" "${FIP}"; do
-    [[ -f "${f}" ]] || fail "Required file not found: ${f}\nRun build-image.sh first (steps 1-7)."
+    [[ -f "${f}" ]] || fail "Required file not found: ${f}\nRun 'make build-stm32' first to build the partition images."
 done
 
 # ── Source Yocto build environment ────────────────────────────────────────────
